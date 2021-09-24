@@ -1,14 +1,31 @@
 <template>
     <div id="chat">
-        <div id="chat-convos"></div>
+        <div id="chat-channels">
+            <div id="chat-user-search">
+                <textarea
+                    id="search-input"
+                    v-model="searchInput"
+                    cols="5"
+                    rows="1"
+                ></textarea>
+                <button
+                    id="text-add"
+                    v-on:click="addFriend()">
+                    Add
+                </button>
+            </div>
+            <div id="channel-list">
+
+            </div>
+        </div>
         <div id="chat-window">
             <div id="chat-msg-pane">
                 <chat-message
                     v-for="message in messages"
                     :key="message.id"
                     :message="message"
-                    :usersMap="usersMap"
-                ></chat-message>
+                    :usersMap="usersMap">
+                </chat-message>
             </div>
             <div id="chat-type-area">
                 <textarea
@@ -41,6 +58,8 @@
                 userData: null,
                 messages: null,
                 userInput: null,
+                searchInput: null,
+                channelList: null,
                 socket: io()
             };
         },
@@ -72,6 +91,14 @@
                     })
                     .catch(err => console.log(err));
             },
+
+            /**
+             * Adds a new conversation with the provided username
+             */
+            addFriend() {
+                console.log("AddFriend not yet implemented");
+            }
+
         },
         mounted() {
             this.getMessages();
@@ -84,11 +111,6 @@
             this.socket.on("connect", () => {
                 console.log(`established socket with server on connection id: ${this.socket.id}`);
                 this.socket.emit("ping");
-            });
-
-            // test receive/response
-            this.socket.on("pong", () => {
-                console.log("Wow! they ponged me!!");
             });
 
             // listen for new messages
@@ -110,7 +132,7 @@
         height: 100%;
     }
 
-    #chat-convos {
+    #chat-channels {
         width: 33%;
     }
 

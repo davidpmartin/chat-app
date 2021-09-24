@@ -4,7 +4,7 @@ import passport from "passport";
 import helmet from "helmet";
 import { v4 as uuidv4 } from "uuid";
 import cors from "cors";
-import { applyRoutes } from "./routes";
+import { applyRoutes } from "./routes/index.route";
 import logger from "./logger";
 import path from "path";
 import http from "http";
@@ -56,7 +56,10 @@ export default class ChatServer {
         applyRoutes(this.app);
 
         // Fall-back route (to accomodate SPA routing config)
-        this.app.get("*", (req, res) => res.sendFile(path.resolve("../client/dist", "index.html")));
+        this.app.get("*", (req, res) => {
+            logger.debug(JSON.stringify(req.session));
+            return res.sendFile(path.resolve("../client/dist", "index.html"));
+        });
 
         // Start listening on port
         this.server.listen(this.port, () => {

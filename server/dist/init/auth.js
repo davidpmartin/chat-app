@@ -7,7 +7,7 @@ const passport_1 = __importDefault(require("passport"));
 const passport_local_1 = __importDefault(require("passport-local"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const logger_1 = __importDefault(require("../logger"));
-const user_1 = require("../models/user");
+const user_model_1 = require("../models/user.model");
 /**
  * Importable setup for passportjs to perform authentication with supplied credentials and
  * maintain the session state.
@@ -19,7 +19,7 @@ function default_1() {
     passport_1.default.use('local', new passport_local_1.default.Strategy((username, password, done) => {
         logger_1.default.debug("performing credentials check...");
         // Query db for username
-        user_1.User.findOne({ "username": username }, (err, user) => {
+        user_model_1.User.findOne({ "username": username }, (err, user) => {
             logger_1.default.debug(`db query result: ${JSON.stringify(user)}`);
             // ERROR
             if (err) {
@@ -62,7 +62,7 @@ function default_1() {
     passport_1.default.deserializeUser((id, done) => {
         logger_1.default.info("deserializeUser()");
         // Get user from db
-        user_1.User.findOne({ "id": id }, (err, user) => {
+        user_model_1.User.findOne({ "id": id }, (err, user) => {
             if (err) {
                 logger_1.default.error(`db query for user failed`);
                 return done(err, false);

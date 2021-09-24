@@ -1,12 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
-import SocketIO from "socket.io";
 import bcrypt from "bcrypt";
+import { User, IUser } from "../models/user.model";
+import passport from "passport";
 import logger from '../logger';
-import { User, IUser } from "../models/user";
-import { Message } from "../models/message";
-import server from "../";
-
 
 /**
  * /users
@@ -15,7 +12,7 @@ import server from "../";
  * @returns { 200 }
  * @todo sanitise user input
  */
-export async function registerUser(req: Request, res: Response, next: NextFunction) {
+ export async function registerUser(req: Request, res: Response, next: NextFunction) {
     logger.info("POST /users");
 
     // Check if username already exists
@@ -72,62 +69,71 @@ export async function registerUser(req: Request, res: Response, next: NextFuncti
 }
 
 /**
- * /messages
+ * /login
  * @method GET
- * @description Allows fetching of chat messages
- * @returns { IMessage[] }
- * @todo: add request query options (limit, etc)
+ * @description Allows clients to verify authentication status
+ * @returns { 200 === authenticated, 401 === unauthenticated }
  */
-export async function getMessages(req: Request, res: Response, next: NextFunction) {
-    logger.info("GET /messages");
-    
-    // Get messages from db
-    Message.find({ })
-        .populate("author")
-        .exec((err, messages) => {
-            if (err) {
-                logger.error(`db failed to get messages`);
-                return next(err);
-            }
-            return res.send(messages);
-        });
+export async function getAuthStatus(req: Request, res: Response) {
+    logger.info("GET /login");
+
+    // Check authentication status
+    if(req.isAuthenticated()) {
+        logger.debug(`advising client user is authenticated`);
+        return res.sendStatus(200);
+    } else {
+        logger.debug(`advising client user is not authenticated`);
+        return res.sendStatus(401);
+    }
 }
 
 /**
- * /messages
+ * /login
  * @method POST
- * @description Allows posting of chat messages
- * @returns { IMessage }
- * @todo
- *  - input validation
- *  - db storage
- *  - proper room implementation
- *  - correct type definitions
+ * @description Allows clients to request authentication by providing a username and password
+ * @returns { user === success, 404 === fail }
  */
-export async function addMessage(req: any, res: Response, next: NextFunction) {
-    logger.info("POST /messages");
+export async function loginUser(req: Request, res: Response, next: NextFunction) {
+    logger.info("POST /login");
 
-    // Build message db oject
-    const newMessage = new Message({
-        id: uuidv4(),
-        author: req.user._id,
-        conversation_id: 101,
-        content: req.body.text,
-        created_at: req.body.created_at
-    });
+    // Run the authencate method
+    passport.authenticate('local', (err, user, info) => {
+        logger.debug(`passport.auth() callback`);
 
-    // Save object to db
-    newMessage.save(err => {
+        // ERROR
         if (err) {
-            logger.error(`db message save failed.`);
+            logger.debug(`Auth error: ${info}`);
             return next(err);
         }
-        logger.debug('message saved to db.')
-        newMessage.author = req.user;
 
-        // emit message to conversation participants and return message to client
-        const io: SocketIO.Server = server.getSocketConnection();
-        io.emit("new_message", newMessage);
-        return res.send(newMessage);
-    })
+        // NOT FOUND
+        if (!user) {
+            logger.debug(`Auth failure: ${info}`);
+            return res.sendStatus(404);
+        }
+
+        // SUCCESS
+        req.logIn(user, err => {
+            if (err) { return next(err); }
+            logger.debug(`Login result: ${ req.user != undefined }`)
+            req.session.save(() => {
+                res.json(user);
+            });
+        });
+    })(req, res, next);
+}
+
+/**
+ * /logout
+ * @method GET
+ * @description Allows client to request termination of their authenticated session
+ * @returns { 200 }
+ */
+export async function logoutUser(req: Request, res: Response) {
+    logger.info("GET /logout");
+
+    // Logout user and report the result
+    req.logout();
+    logger.debug(`Logout result: ${ req.user != undefined }`)
+    return res.sendStatus(200);
 }

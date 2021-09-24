@@ -12,16 +12,10 @@ export default function socket(server: http.Server): Server {
     io.on("connection", (socket) => {
 
         logger.debug(`client on ${socket.handshake.address} connected`);
-        
-        // test receive/response
-        socket.on("ping", () => {
-            logger.debug("How dare they ping me! I'll show them...");
-            socket.emit("pong");
-        });
 
         // notify of disconnects
         socket.on("disconnect", () => {
-            logger.debug(`Client on ${socket.handshake.address} disconnected`);
+            logger.debug(`client on ${socket.handshake.address} disconnected`);
         });
     });
 

@@ -12,14 +12,9 @@ function socket(server) {
     // On client connection
     io.on("connection", (socket) => {
         logger_1.default.debug(`client on ${socket.handshake.address} connected`);
-        // test receive/response
-        socket.on("ping", () => {
-            logger_1.default.debug("How dare they ping me! I'll show them...");
-            socket.emit("pong");
-        });
         // notify of disconnects
         socket.on("disconnect", () => {
-            logger_1.default.debug(`Client on ${socket.handshake.address} disconnected`);
+            logger_1.default.debug(`client on ${socket.handshake.address} disconnected`);
         });
     });
     return io;

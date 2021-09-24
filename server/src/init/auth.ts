@@ -2,7 +2,7 @@ import passport from "passport";
 import passportLocal from "passport-local";
 import bcrypt from "bcrypt";
 import logger from "../logger";
-import { User, IUser } from "../models/user";
+import { User, IUser } from "../models/user.model";
 import { Mongoose } from "mongoose";
 
 /**

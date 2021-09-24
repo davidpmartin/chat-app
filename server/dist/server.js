@@ -9,7 +9,7 @@ const passport_1 = __importDefault(require("passport"));
 const helmet_1 = __importDefault(require("helmet"));
 const uuid_1 = require("uuid");
 const cors_1 = __importDefault(require("cors"));
-const routes_1 = require("./routes");
+const index_route_1 = require("./routes/index.route");
 const logger_1 = __importDefault(require("./logger"));
 const path_1 = __importDefault(require("path"));
 const http_1 = __importDefault(require("http"));
@@ -48,9 +48,12 @@ class ChatServer {
         this.app.use(passport_1.default.initialize());
         this.app.use(passport_1.default.authenticate('session'));
         // Define routes
-        (0, routes_1.applyRoutes)(this.app);
+        (0, index_route_1.applyRoutes)(this.app);
         // Fall-back route (to accomodate SPA routing config)
-        this.app.get("*", (req, res) => res.sendFile(path_1.default.resolve("../client/dist", "index.html")));
+        this.app.get("*", (req, res) => {
+            logger_1.default.debug(JSON.stringify(req.session));
+            return res.sendFile(path_1.default.resolve("../client/dist", "index.html"));
+        });
         // Start listening on port
         this.server.listen(this.port, () => {
             logger_1.default.info(`server started on http://localhost:${this.port}`);
