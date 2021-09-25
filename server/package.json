@@ -40,7 +40,7 @@
     "@types/helmet": "^4.0.0",
     "@types/mocha": "^9.0.0",
     "@types/mongoose": "^5.11.97",
-    "@types/node": "^16.9.1",
+    "@types/node": "^16.9.6",
     "@types/passport": "^1.0.7",
     "@types/passport-local": "^1.0.34",
     "@types/session-file-store": "^1.2.2",

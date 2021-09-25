@@ -2,7 +2,6 @@ import express, { Express } from "express";
 import session from "express-session";
 import passport from "passport";
 import helmet from "helmet";
-import { v4 as uuidv4 } from "uuid";
 import cors from "cors";
 import { applyRoutes } from "./routes/index.route";
 import logger from "./logger";
@@ -12,6 +11,7 @@ import SocketIO from "socket.io"
 import socket from "./socket";
 import initAuth from "./init/auth";
 import initDb from "./init/db";
+import sessionConfig from "./config/session.config";
 
 /** Main server class */
 export default class ChatServer {
@@ -38,17 +38,7 @@ export default class ChatServer {
         this.app.use(express.urlencoded({ extended: true }));
         this.app.use(express.static("../client/dist"));
         this.app.use(cors());
-        this.app.use(session({
-            name: "sessionId",
-            genid: () => uuidv4(),
-            secret: "placeholder_secret",
-            cookie: {
-                secure: process.env.NODE_ENV === "prod",
-                httpOnly: process.env.NODE_ENV === "prod"
-            },
-            resave: false,
-            saveUninitialized: true
-        }));
+        this.app.use(session(sessionConfig));
         this.app.use(passport.initialize());
         this.app.use(passport.authenticate('session'));
 

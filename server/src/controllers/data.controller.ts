@@ -53,6 +53,10 @@ export async function addChannel(req: any, res: Response, next: NextFunction) {
             // Get IO client and check if queried user is online
             const io: SocketIO.Server = server.getSocketConnection();
 
+            // Important docs:
+            // https://github.com/socketio/socket.io/blob/master/examples/passport-example/index.js
+            // https://github.com/socketio/socket.io/blob/master/examples/passport-example/index.html
+            // https://socket.io/docs/v4/server-instance/#fetchSockets
 
             io.emit("new_message", newChannel);
             return res.send(newChannel);
