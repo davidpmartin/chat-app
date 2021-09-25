@@ -1,8 +1,10 @@
 import express, { Express } from "express";
 import session from "express-session";
+import filestore from "session-file-store";
 import passport from "passport";
 import helmet from "helmet";
 import cors from "cors";
+import { v4 as uuidv4 } from "uuid";
 import { applyRoutes } from "./routes/index.route";
 import logger from "./logger";
 import path from "path";
@@ -11,7 +13,7 @@ import SocketIO from "socket.io"
 import socket from "./socket";
 import initAuth from "./init/auth";
 import initDb from "./init/db";
-import sessionConfig from "./config/session.config";
+import { sessionConf } from "./config";
 
 /** Main server class */
 export default class ChatServer {
@@ -26,11 +28,32 @@ export default class ChatServer {
         this.app = express();
         this.server = http.createServer(this.app);
         this.port = 5050;
-        this.io = socket(this.server);
+        this.io;
 
-        // Import inits
+        // Run inits
         initAuth();
         initDb();
+
+        // Define session store
+        const sessionStore = filestore(session);
+        const store = new sessionStore();
+
+        // Define session config
+        const sessionMiddleware = session({
+            name: sessionConf.name,
+            genid: () => uuidv4(),
+            secret: "placeholder_secret",
+            store: store,
+            cookie: {
+                secure: process.env.NODE_ENV === "prod",
+                httpOnly: process.env.NODE_ENV === "prod"
+            },
+            resave: false,
+            saveUninitialized: true
+        });
+
+        // Instantiate the io object with the session storage
+        this.io = socket(this.server, sessionMiddleware);
 
         // Apply various middlewares
         this.app.use(helmet());
@@ -38,7 +61,7 @@ export default class ChatServer {
         this.app.use(express.urlencoded({ extended: true }));
         this.app.use(express.static("../client/dist"));
         this.app.use(cors());
-        this.app.use(session(sessionConfig));
+        this.app.use(sessionMiddleware);
         this.app.use(passport.initialize());
         this.app.use(passport.authenticate('session'));
 

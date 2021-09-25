@@ -1,31 +1,29 @@
 import { Server, Socket } from "socket.io";
 import { NextFunction } from "express";
-import session from "express-session";
 import http from "http";
 import logger from "./logger";
-import sessionConfig from "./config/session.config";
 import passport from "passport";
 
 // Exportable function to apply socket.io listeners to http server
-export default function socket(server: http.Server): Server {
+export default function socket(server: http.Server, config: any): Server {
 
     // Instantiate socket.io server object and bind to http server
     const io: Server = new Server(server);
 
     // Create a wrapper middleware and bind to passport
     const wrap = (middleware: any) => (socket: Socket, next: NextFunction) => middleware(socket.request, {}, next);
-    io.use(wrap(session(sessionConfig)));
+    io.use(wrap(config));
     io.use(wrap(passport.initialize()));
     io.use(wrap(passport.session()));
 
     // Add an authentication middleware
     io.use((socket: any, next) => {
-        logger.debug(socket);
-        logger.debug(socket.request);
-        logger.debug(socket.request.user);
+        logger.debug(`socketio: validating auth status...`)
         if (socket.request.user) {
+            logger.debug(`access: true`);
             next();
         } else {
+            logger.debug(`access: false`);
             next(new Error('Unauthorized'));
         }
     });

@@ -1,9 +1,11 @@
 import { NextFunction, Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
+import Socket from "socket.io";
 import bcrypt from "bcrypt";
-import { User, IUser } from "../models/user.model";
 import passport from "passport";
+import { User, IUser } from "../models/user.model";
 import logger from '../logger';
+import server from "../";
 
 /**
  * /users
@@ -128,12 +130,23 @@ export async function loginUser(req: Request, res: Response, next: NextFunction)
  * @method GET
  * @description Allows client to request termination of their authenticated session
  * @returns { 200 }
+ * @todo Fix req.session property declaration
  */
 export async function logoutUser(req: Request, res: Response) {
     logger.info("GET /logout");
 
+    // Verify active socket connection and close if required
+    const io = server.getSocketConnection();
+    const socketId = req.session.socketId;
+    const socket: Socket.Socket = io.of("/").sockets.get(socketId)
+    if (socketId && socket) {
+        logger.debug(`force closing socket: ${socketId}`);
+        socket.disconnect(true);
+    }
+
     // Logout user and report the result
     req.logout();
+    res.cookie("connect.sid", "", { expires: new Date() });
     logger.debug(`Logout result: ${ req.user != undefined }`)
     return res.sendStatus(200);
 }

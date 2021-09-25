@@ -17,7 +17,7 @@ export async function getChannels(req: Request, res: Response, next: NextFunctio
  * @description Allows to creation of a new channel
  * @returns { Channel }
  */
-export async function addChannel(req: any, res: Response, next: NextFunction) {
+export async function addChannel(req: Request, res: Response, next: NextFunction) {
     logger.info("POST /channels");
 
     // Perform a lookup on provided username to find corresponding user id
@@ -97,7 +97,7 @@ export async function getMessages(req: Request, res: Response, next: NextFunctio
  *  - proper channel implementation
  *  - correct type definitions
  */
-export async function addMessage(req: any, res: Response, next: NextFunction) {
+export async function addMessage(req: Request, res: Response, next: NextFunction) {
     logger.info("POST /messages");
 
     // Build message db oject
