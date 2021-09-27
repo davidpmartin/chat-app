@@ -16,7 +16,6 @@
 
 <script>
     import axios from 'axios';
-    import emitter from 'mitt';
 
     export default {
         name: 'Login',
@@ -76,6 +75,7 @@
                         if (res.status === 200) {
                             this.notification.status = true;
                             this.notification.msg = "Account created successfully!"
+                            this.clearFields();
                         }
                     })
                     .catch(err => {
@@ -92,6 +92,10 @@
                 this.error.msg = null;
                 this.notification.status = false;
                 this.notification.msg = null;
+            },
+            clearFields() {
+                this.input.username = ""
+                this.input.password = "";
             }
         }
     }

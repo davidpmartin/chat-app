@@ -13,18 +13,24 @@
                     v-on:click="addFriend()">
                     Add
                 </button>
+                <div id="search-error" v-if="error.status">
+                    <span id="error-msg">{{ error.msg }}</span>
+                </div>
             </div>
             <div id="channel-list">
-
+                <channel
+                    v-for="channel in channelList"
+                    :key="channel.id"
+                    :channel="channel">
+                </channel>
             </div>
         </div>
         <div id="chat-window">
             <div id="chat-msg-pane">
                 <chat-message
-                    v-for="message in messages"
+                    v-for="message in message"
                     :key="message.id"
-                    :message="message"
-                    :usersMap="usersMap">
+                    :message="message">
                 </chat-message>
             </div>
             <div id="chat-type-area">
@@ -37,9 +43,9 @@
                 ></textarea>
                 <button
                     id="text-submit"
-                    v-on:click="sendMessage()"
-                >Submit</button>
-                <button v-on:click="ping()">ping</button>
+                    v-on:click="sendMessage()">
+                    Submit
+                </button>
             </div>
         </div>
     </div>
@@ -49,27 +55,32 @@
     import axios from 'axios';
     import io from'socket.io-client';
     import ChatMessage from '../components/ChatMessage';
+    import Channel from '../components/Channel';
 
     export default {
         name: 'Chat',
-        components: { ChatMessage },
+        components: { ChatMessage, Channel },
         data() {
             return {
                 userData: null,
-                messages: null,
-                userInput: null,
-                searchInput: null,
-                channelList: null,
-                socket: io()
+                messages: [],
+                userInput: "",
+                searchInput: "",
+                channelList: [],
+                socket: io(),
+                error: {
+                    status: false,
+                    msg: ""
+                }
             };
         },
         methods: {
             /**
-             * Fetches all messages from the server
+             * Fetches all of users channels from the server
              */
-            getMessages() {
+            getChannels() {
                 axios
-                    .get('http://localhost:5050/api/messages')
+                    .get('http://localhost:5050/api/channels')
                     .then(res => {
                         this.messages = res.data;
                     })
@@ -96,12 +107,34 @@
              * Adds a new conversation with the provided username
              */
             addFriend() {
-                console.log("AddFriend not yet implemented");
+                this.clearError();
+                axios
+                    .post("http://localhost:5050/api/channels", { username: this.searchInput })
+                    .then(res => {
+                        this.channelList.push(res.data);
+                        console.log(`Current channel list: ${this.channelList}`);
+                    })
+                    .catch(err => {
+                        console.log(`this is running for some reason wtf`)
+                        if(err.response.status == 404) {
+                            this.error.status = true;
+                            this.error.msg = err.response.data.msg;
+                        } else {
+                            console.log(err);
+                        }
+                    })
+            },
+            /**
+             * Clears error status
+             */
+            clearError() {
+                this.error.status = false;
+                this.error.msg = null;
             }
 
         },
         mounted() {
-            this.getMessages();
+            this.getChannels();
 
             /**
              * Socket.io listeners
@@ -136,8 +169,21 @@
         width: 33%;
     }
 
+        #search-input {
+            width: 80%;
+        }
+
+        #text-add {
+            width: 15%;
+        }
+
+        #search-error {
+            color: red;
+        }
+
     #chat-window {
         width: 66%;
+        float: right;
     }
 
         #chat-msg-pane {
