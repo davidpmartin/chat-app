@@ -42,7 +42,7 @@ export default class ChatServer {
         const sessionMiddleware = session({
             name: sessionConf.name,
             genid: () => uuidv4(),
-            secret: "placeholder_secret",
+            secret: sessionConf.secret,
             store: store,
             cookie: {
                 secure: process.env.NODE_ENV === "prod",
