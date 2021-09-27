@@ -3,6 +3,8 @@ declare global {
         interface User {
             id?: string;
             _id?: string;
+            friends?: string[];
+            username?: string;
         }
     }
 }

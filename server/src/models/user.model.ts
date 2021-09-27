@@ -7,7 +7,8 @@ export interface IUser extends Document {
     id: string,
     username: string,
     password: string,
-    salt: string
+    salt: string,
+    friends: string[]
 }
 
 const schema: Schema = new Schema<IUser>({
@@ -28,6 +29,11 @@ const schema: Schema = new Schema<IUser>({
         type: String,
         require: true
     },
+    friends: [{
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        require: true
+    }]
 });
 
 export const User = model<IUser>('User', schema);

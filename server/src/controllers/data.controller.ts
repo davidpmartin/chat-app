@@ -4,62 +4,98 @@ import SocketIO from "socket.io";
 import logger from '../logger';
 import { Message } from "../models/message.model";
 import { Channel } from "../models/channel.model";
-import { User } from "../models/user.model";
+import { User, IUser } from "../models/user.model";
 import server from "..";
 
+/**
+ * /channels
+ * @method POST
+ * @description Returns the channels of which the client is a participant
+ * @returns { Channel }[]
+ */
 export async function getChannels(req: Request, res: Response, next: NextFunction) {
+    logger.info("GET /channels");
 
+    // Perform query for channels of which the req.user is a participant
+    Channel.find({ "participants": `ObjectId(${req.user._id})` }, (err, channels) => {
+        if(err) {
+            logger.error(`db failed to complete channel query`);
+            return next(err);
+        }
+        return res.send(channels);
+    });
+}
+
+/**
+ * /channels/:channelId/messages?options
+ * @method POST
+ * @description Returns the channels of which the client is a participant
+ * @returns { Channel }[]
+ */
+export async function getChannelMessages(req: Request, res: Response, next: NextFunction) {
+    return res.send("Not yet implemented!");
 }
 
 /**
  * /channels
  * @method POST
- * @description Allows to creation of a new channel
+ * @description Allows the creation of a new channel
  * @returns { Channel }
  */
 export async function addChannel(req: Request, res: Response, next: NextFunction) {
     logger.info("POST /channels");
 
+    // Check user isn't searching for themselves
+    if (req.body.username === req.user.username) {
+        logger.debug(`user tried friending themselves lol`);
+        return res.status(404).send({msg: "You cannot add yourself."});
+    }
+
     // Perform a lookup on provided username to find corresponding user id
-    User.findOne({ "username": req.body.username }, (err: any, user: any) => {
+    User.findOne({ "username": req.body.username }, (err: any, returnedUser: IUser) => {
         
         // ERROR
         if (err) {
-            logger.error(`db failed to perform user query`);
+            logger.error(`db failed to complete user query`);
             return next(err);
         }
         // NO MATCH
-        if (!user) {
+        if (!returnedUser) {
             logger.debug(`User '${req.body.username}' doesn't exist`);
-            return res.send({msg: "No match for username found"}).status(404);
+            return res.status(404).send({msg: "No match for username found."});
+        }
+
+        // Check if returned user is already a friend of the client
+        if (req.user.friends.find(id => returnedUser._id.equals(id))) {
+            logger.debug(`users are already friends`)
+            return res.status(404).send({msg: "You are already friends with this user."});
         }
 
         // Build new channel db object
         const newChannel = new Channel({
             id: uuidv4(),
-            participants: [req.user.id, user.id],
+            participants: [req.user._id, returnedUser._id],
             messages: [],
             created_at: new Date().toISOString
         });
 
-        // Save channel to DB
-        newChannel.save(err => {
-            // ERROR
-            if (err) {
-                logger.error(`db failed to save new channel`);
-                return next(err);
-            }
-
-            // Get IO client and check if queried user is online
-            const io: SocketIO.Server = server.getSocketConnection();
-
-            // Important docs:
-            // https://github.com/socketio/socket.io/blob/master/examples/passport-example/index.js
-            // https://github.com/socketio/socket.io/blob/master/examples/passport-example/index.html
-            // https://socket.io/docs/v4/server-instance/#fetchSockets
-
-            io.emit("new_message", newChannel);
-            return res.send(newChannel);
+        // Perform the channel save and add both users to eachothers friends ref
+        Promise.all([
+            User.updateOne({ "_id": req.user._id }, { $addToSet: { "friends": returnedUser._id } }),
+            User.updateOne({ "_id": returnedUser._id }, { $addToSet: { "friends": req.user._id } }),
+            newChannel.save()
+        ])
+        .then(async ([reqUser, newFriend, channel]) => {
+            logger.debug(`channel saved to db and client friend record updated`);
+            
+            // Populate the User refs and return to client
+            await channel.populate("participants");
+            req.user.friends.push(returnedUser._id);
+            return res.send(channel);
+        })
+        .catch(err => {
+            logger.error(`db failed the new channel operation`);
+            return next(err);
         });
     });
 }

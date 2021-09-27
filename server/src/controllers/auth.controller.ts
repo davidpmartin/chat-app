@@ -25,48 +25,47 @@ import server from "../";
         }
         if (user) {
             logger.debug(`user with username: '${user.username}' already exists.`);
-            res.send({msg: "An account with this username already exists."}).status(404);
-            return next();
+            return res.status(404).send({msg: "An account with this username already exists."});
         }
-    });
+        // Generate salt for hash function
+        const saltRounds = 10;
+        bcrypt.genSalt(saltRounds, (err, salt) => {
+            if (err) {
+                logger.error(`bcrypt failed to generate salt.`);
+                return next(err);
+            }
+            else {
 
-    // Generate salt for hash function
-    const saltRounds = 10;
-    bcrypt.genSalt(saltRounds, (err, salt) => {
-        if (err) {
-            logger.error(`bcrypt failed to generate salt.`);
-            return next(err);
-        }
-        else {
+                // Hash password
+                bcrypt.hash(req.body.password, salt, (err, hash) => {
+                    if (err) {
+                        logger.error(`bcrypt failed to hash password.`);
+                        return next(err);
+                    }
+                    else {
 
-            // Hash password
-            bcrypt.hash(req.body.password, salt, (err, hash) => {
-                if (err) {
-                    logger.error(`bcrypt failed to hash password.`);
-                    return next(err);
-                }
-                else {
-
-                    // Create user document and save to db
-                    const newUser = new User(
-                        {
-                            id: uuidv4(),
-                            username: req.body.username,
-                            password: hash,
-                            salt: salt
-                        }
-                    );
-                    newUser.save(err => {
-                        if (err) {
-                            logger.error(`failed to save user to db.`);
-                            next(err);
-                        }
-                        logger.debug(`User saved to db`);
-                        return res.sendStatus(200);
-                    });
-                }
-            });
-        }
+                        // Create user document and save to db
+                        const newUser = new User(
+                            {
+                                id: uuidv4(),
+                                username: req.body.username,
+                                password: hash,
+                                salt: salt,
+                                friends: []
+                            }
+                        );
+                        newUser.save(err => {
+                            if (err) {
+                                logger.error(`failed to save user to db.`);
+                                next(err);
+                            }
+                            logger.debug(`User saved to db`);
+                            return res.sendStatus(200);
+                        });
+                    }
+                });
+            }
+        });
     });
 }
 
